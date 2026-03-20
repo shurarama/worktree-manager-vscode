@@ -5,10 +5,13 @@ Manage git worktrees and run configurable commands from a single VS Code window.
 ## Features
 
 - Create/remove git worktrees from the sidebar
-- Run configurable commands (build, shell, Claude, etc.) in any worktree
-- Two execution modes: **terminal** (interactive) and **output** (read-only log)
-- Track running commands per worktree with stop/close controls
-- User-defined variables for DRY command configuration
+- Configurable **commands** (output mode) and **terminals** (interactive mode)
+- Global and per-command environment variables with template expansion
+- Command dependencies with automatic resolution
+- `onCreate` hooks for automatic worktree setup
+- Open worktree in new VS Code window with correct env
+- Multiple concurrent commands per worktree with tree view
+- Stop/close running commands from UI
 
 ## Configuration
 
@@ -17,20 +20,41 @@ Create `.vscode/worktree-presets.json` in your project root:
 ```json
 {
   "variables": {
-    "outputPath": "/home/user/builds/myproject${number}",
-    "buildPath": "${outputPath}/debug"
+    "outputPath": "/home/user/builds/myproject-output${number}",
+    "buildPath": "${outputPath}/build/debug",
+    "vcpkgPrefix": "/home/user/libs/vcpkg/installed/x64-linux"
   },
+  "env": {
+    "MY_VAR": "${outputPath}",
+    "PROJECT_ROOT": "${wtPath}"
+  },
+  "onCreate": ["Setup", "Configure"],
   "commands": [
     {
-      "label": "Build",
-      "command": "make -j${cpus}",
-      "cwd": "${buildPath}",
-      "mode": "output"
+      "label": "Setup",
+      "command": "cp CMakeUserPresets.json ${wtPath}/",
+      "hidden": true
     },
     {
+      "label": "Configure",
+      "command": "cmake -S ${wtPath} -B ${buildPath} -G Ninja"
+    },
+    {
+      "label": "Build",
+      "command": "ninja -j${cpus} install",
+      "cwd": "${buildPath}",
+      "depends": ["Configure"]
+    }
+  ],
+  "terminals": [
+    {
       "label": "Shell",
-      "command": "${SHELL}",
-      "mode": "terminal"
+      "command": "${SHELL}"
+    },
+    {
+      "label": "Claude",
+      "command": "claude",
+      "depends": ["Configure"]
     }
   ]
 }
@@ -40,23 +64,48 @@ Create `.vscode/worktree-presets.json` in your project root:
 
 | Variable | Description |
 |----------|-------------|
-| `${srcPath}` | Worktree source directory |
+| `${wtPath}` | Worktree source directory |
 | `${branch}` | Current branch name |
 | `${number}` | Worktree number (1-9) |
 | `${cpus}` | CPU count |
 | `${SHELL}` | User's shell |
 
-User variables defined in `variables` can reference built-in vars and each other (in order).
+User variables in `variables` can reference built-in vars and each other (resolved in order).
 
-### Command options
+### Config sections
+
+| Section | Description |
+|---------|-------------|
+| `variables` | User-defined variables for template expansion |
+| `env` | Global environment variables (inherited by all commands/terminals) |
+| `onCreate` | List of command labels to run after worktree creation |
+| `commands` | Output-mode commands (read-only log, stoppable) |
+| `terminals` | Terminal-mode commands (interactive, closable) |
+
+### Command/terminal options
 
 | Field | Description | Default |
 |-------|-------------|---------|
 | `label` | Display name | required |
-| `command` | Shell command | required |
-| `cwd` | Working directory | `${srcPath}` |
-| `mode` | `"terminal"` (interactive) or `"output"` (read-only) | `"terminal"` |
-| `env` | Environment variables | `{}` |
+| `command` | Shell command (supports `${...}` variables) | required |
+| `cwd` | Working directory | `${wtPath}` |
+| `env` | Extra env vars (merged on top of global `env`) | `{}` |
+| `depends` | List of command labels that must complete first | `[]` |
+| `hidden` | Hide from QuickPick (still available for `onCreate`/`depends`) | `false` |
+
+### Dependencies
+
+When a command or terminal has `depends`, the extension checks if those commands have completed successfully in the current session. If not, they are run automatically before the main command.
+
+### Open in VS Code
+
+The extension adds a window button on each secondary worktree that opens it in a new VS Code window with the global `env` applied. For this to work, your shell startup files (`.zshenv`, `.bashrc`) should use conditional defaults:
+
+```bash
+export MY_VAR=${MY_VAR:-default_value}
+```
+
+This way, env vars set by the extension won't be overwritten by shell startup.
 
 ## Install
 
@@ -76,3 +125,5 @@ Then in VS Code: `Ctrl+Shift+P` > `Developer: Install Extension from Location...
   myproject2/         # wt2 (worktree)
   myproject3/         # wt3 (worktree)
 ```
+
+The extension auto-detects the primary repo via `git rev-parse --git-common-dir`, so it works correctly even when VS Code is opened from a secondary worktree.
