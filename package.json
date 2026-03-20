@@ -1,0 +1,134 @@
+{
+  "name": "worktree-manager",
+  "displayName": "Worktree Manager",
+  "description": "Manage git worktrees with configurable commands",
+  "version": "0.4.0",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ds-worktree",
+          "title": "Worktrees",
+          "icon": "$(git-branch)"
+        }
+      ]
+    },
+    "views": {
+      "ds-worktree": [
+        {
+          "id": "dsWorktrees",
+          "name": "Worktrees"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "ds-worktree.create",
+        "title": "Create Worktree",
+        "icon": "$(add)"
+      },
+      {
+        "command": "ds-worktree.remove",
+        "title": "Remove Worktree",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "ds-worktree.openFolder",
+        "title": "Open in VS Code",
+        "icon": "$(window)"
+      },
+      {
+        "command": "ds-worktree.runCommand",
+        "title": "Run Command",
+        "icon": "$(run-all)"
+      },
+      {
+        "command": "ds-worktree.viewCommand",
+        "title": "View Output",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "ds-worktree.stopCommand",
+        "title": "Stop",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "ds-worktree.closeCommand",
+        "title": "Close Terminal",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "ds-worktree.editPresets",
+        "title": "Edit Config",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "ds-worktree.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "ds-worktree.create",
+          "when": "view == dsWorktrees",
+          "group": "navigation@1"
+        },
+        {
+          "command": "ds-worktree.editPresets",
+          "when": "view == dsWorktrees",
+          "group": "navigation@2"
+        },
+        {
+          "command": "ds-worktree.refresh",
+          "when": "view == dsWorktrees",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "ds-worktree.openFolder",
+          "when": "view == dsWorktrees && viewItem =~ /secondary/",
+          "group": "inline@1"
+        },
+        {
+          "command": "ds-worktree.runCommand",
+          "when": "view == dsWorktrees && viewItem =~ /^worktree/",
+          "group": "inline@2"
+        },
+        {
+          "command": "ds-worktree.remove",
+          "when": "view == dsWorktrees && viewItem == worktree.secondary",
+          "group": "inline@3"
+        },
+        {
+          "command": "ds-worktree.stopCommand",
+          "when": "view == dsWorktrees && viewItem == running.output",
+          "group": "inline@1"
+        },
+        {
+          "command": "ds-worktree.closeCommand",
+          "when": "view == dsWorktrees && viewItem == running.terminal",
+          "group": "inline@1"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  }
+}
