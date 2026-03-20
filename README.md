@@ -52,6 +52,10 @@ Create `.vscode/worktree-presets.json` in your project root:
       "command": "${SHELL}"
     },
     {
+      "label": "Claude",
+      "command": "claude"
+    },
+    {
       "label": "Debug Server",
       "command": "./run-server.sh",
       "depends": ["Build"]
